@@ -12,7 +12,11 @@ import org.springframework.security.oauth2.config.annotation.web.configuration.E
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
 import org.springframework.security.oauth2.provider.token.AccessTokenConverter;
+import org.springframework.security.oauth2.provider.token.TokenEnhancer;
+import org.springframework.security.oauth2.provider.token.TokenEnhancerChain;
 import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
+
+import java.util.Arrays;
 
 @Configuration
 @EnableAuthorizationServer
@@ -25,6 +29,10 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
     @Qualifier("authenticationManager") //5 por si acaso existen mas clases con este nombre
     private AuthenticationManager authenticationManager; //4 inyectar la el metodo bean
 
+
+    //22
+    @Autowired //inyectando la clase que tioene la informacion adicional del token
+    private InfoAdicionalToken infoAdicionalToken;
 
     @Override //11 aca se configura el acceso anuestros endpoints o rutas de acceso
     public void configure(AuthorizationServerSecurityConfigurer security) throws Exception {
@@ -48,15 +56,23 @@ public class AuthorizationServerConfig extends AuthorizationServerConfigurerAdap
     //metodo que se encarga de el proceso de autenticacion y de validar el token
     @Override
     public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception { //6 sobrescribir este metodo
+
+        //21 aca creamos una instancia del TOKENENHACER para la infromacion adicional unira la info del token + la adicional
+        TokenEnhancerChain tokenEnhancerChain = new TokenEnhancerChain();
+        tokenEnhancerChain.setTokenEnhancers(Arrays.asList(infoAdicionalToken,accessTokenConverter()));
+        /* fin del paso 21*/
+
         endpoints.authenticationManager(authenticationManager) //7 usar el endpointes con la inyeccion que hacimos arriba
-                .accessTokenConverter(accessTokenConverter());//8 registrar el accesetokenConverter, es el encargado de manjear el jwt almancena los datos en el token cualquier informacion extra que querramos agregar los claims
-        super.configure(endpoints);
+                .accessTokenConverter(accessTokenConverter())//8 registrar el accesetokenConverter, es el encargado de manjear el jwt almancena los datos en el token cualquier informacion extra que querramos agregar los claims
+                .tokenEnhancer(tokenEnhancerChain);//paso 22 unir infomraciones
+
     }
 
     @Bean
     public JwtAccessTokenConverter accessTokenConverter() { //9 creamos el metodo
         JwtAccessTokenConverter jwtAccessTokenConverter = new JwtAccessTokenConverter();
-        jwtAccessTokenConverter.setSigningKey(JwtConfig.LLAVE_SECRETA); //16 agregando firma MAC
+        jwtAccessTokenConverter.setSigningKey(JwtConfig.RSA_PRIVADA); //16 agregando firma MAC O Rsa
+        jwtAccessTokenConverter.setVerifierKey(JwtConfig.RSA_PUBLICA);
         return jwtAccessTokenConverter;
     }
 }

@@ -15,4 +15,10 @@ public class HomeController {
         return home;
         //return new ResponseEntity(HttpStatus.OK);
     }
+
+    @GetMapping("/home/page")
+    public String HomePaginacion(){
+        String paginar = "Pagina";
+        return paginar;
+    }
 }
